@@ -1,5 +1,6 @@
 package com.example.automatizacion_gestion_respaldo.rman;
 
+import com.example.automatizacion_gestion_respaldo.domain.ExecutionStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -11,33 +12,36 @@ import java.util.regex.Pattern;
 public class LogAnalyzer {
 
     private static final Pattern RMAN_ERROR_PATTERN = Pattern.compile("(RMAN-\\d{5}.*|ORA-\\d{5}.*)");
+    private static final String ERROR_STACK = "RMAN-00569";
+    private static final String COMPLETE_MARKER = "Recovery Manager complete";
 
-    public String determineStatus(int exitCode, String log) {
+    public ExecutionStatus determineStatus(int exitCode, String log) {
         if (exitCode != 0) {
-            return "ERROR";
+            return ExecutionStatus.ERROR;
         }
-        
-        if (log != null && log.contains("RMAN-") || log.contains("ORA-")) {
-            // A veces el exitCode es 0 pero hay advertencias o errores parciales
-            if (log.contains("ERROR")) {
-                return "ERROR";
-            }
-            return "ADVERTENCIA";
+        if (log == null || log.isBlank()) {
+            return ExecutionStatus.ADVERTENCIA; // sin log no hay evidencia suficiente
         }
-
-        return "EXITOSO";
+        if (log.contains(ERROR_STACK)) {
+            return ExecutionStatus.ERROR;
+        }
+        if (RMAN_ERROR_PATTERN.matcher(log).find() || !log.contains(COMPLETE_MARKER)) {
+            return ExecutionStatus.ADVERTENCIA;
+        }
+        return ExecutionStatus.EXITOSO;
     }
 
     public String extractErrors(String log) {
         if (log == null) return null;
-        
+
         List<String> errors = new ArrayList<>();
         Matcher matcher = RMAN_ERROR_PATTERN.matcher(log);
-        
         while (matcher.find()) {
-            errors.add(matcher.group(1));
+            String line = matcher.group(1).trim();
+            if (!line.contains("=====")) { // ignora las líneas decorativas de RMAN
+                errors.add(line);
+            }
         }
-        
         return errors.isEmpty() ? null : String.join("\n", errors);
     }
 }

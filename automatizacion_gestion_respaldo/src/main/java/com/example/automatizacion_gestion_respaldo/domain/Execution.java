@@ -1,12 +1,18 @@
 package com.example.automatizacion_gestion_respaldo.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "execution")
+@Table(name = "execution", indexes = {
+        @Index(name = "idx_execution_start", columnList = "start_time"),
+        @Index(name = "idx_execution_status", columnList = "status")
+})
 @Getter
 @Setter
 public class Execution {
@@ -15,28 +21,41 @@ public class Execution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @JsonIgnore
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "strategy_id")
     private Strategy strategy;
 
-    @ManyToOne
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "schedule_id")
-    private Schedule schedule; // Null if manual
+    private Schedule schedule; // nulo si es manual
+
+    // Copia de los datos al momento de ejecutar (la evidencia no debe cambiar)
+    @Column(nullable = false)
+    private String strategyName;
 
     @Column(nullable = false)
-    private String origin; // PROGRAMADA, MANUAL
+    private String databaseName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BackupType backupType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ExecutionOrigin origin;
 
     @Column(nullable = false)
     private LocalDateTime startTime;
 
-    @Column
     private LocalDateTime endTime;
 
-    @Column
     private Long durationSeconds;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // EXITOSO, ERROR, ADVERTENCIA, EN_EJECUCION, OMITIDO
+    private ExecutionStatus status;
 
     @Lob
     @Column(name = "used_script")
@@ -49,10 +68,17 @@ public class Execution {
     @Column(length = 500)
     private String backupLocation;
 
-    @Column
     private Long totalSizeBytes;
 
     @Lob
-    @Column
-    private String identifiedErrors;
+    @Column(name = "identified_errors")
+    private String identifiedErrors; // errores y advertencias (RMAN-xxxxx / ORA-xxxxx)
+
+    @Column(nullable = false)
+    private Boolean archived = false;
+
+    @OneToMany(mappedBy = "execution", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    private List<ExecutionFile> files = new ArrayList<>();
+
+    public void addFile(ExecutionFile f) { files.add(f); f.setExecution(this); }
 }

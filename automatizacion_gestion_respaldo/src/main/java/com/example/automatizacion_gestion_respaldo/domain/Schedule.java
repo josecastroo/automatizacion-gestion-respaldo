@@ -1,8 +1,11 @@
 package com.example.automatizacion_gestion_respaldo.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "schedule")
@@ -14,22 +17,22 @@ public class Schedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @JsonIgnore
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "strategy_id")
     private Strategy strategy;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "backup_type_id")
     private StrategyBackupType backupType;
 
+    // Cron de Spring de 6 campos: seg min hora día mes díaSemana (ej. "0 0 23 * * *")
+    @NotBlank
     @Column(nullable = false)
-    private String cronExpression; // CRON or Days/Hour expression
+    private String cronExpression;
 
-    @Column
-    private String windowStart; // Time like 23:00
-
-    @Column
-    private String windowEnd; // Time like 04:00
+    private LocalTime windowStart;
+    private LocalTime windowEnd;
 
     @Column(nullable = false)
     private Boolean active = true;
