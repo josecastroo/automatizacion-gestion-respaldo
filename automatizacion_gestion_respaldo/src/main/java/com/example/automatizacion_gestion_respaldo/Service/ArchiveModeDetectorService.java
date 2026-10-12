@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Properties;
 
 @Service
 @RequiredArgsConstructor
@@ -25,15 +26,25 @@ public class ArchiveModeDetectorService {
         DatabaseTarget target = repository.findById(databaseId)
                 .orElseThrow(() -> new BusinessException("Base de datos no encontrada: " + databaseId));
 
-        // 1. Desencriptar la contraseña para poder conectarnos
+        // 1. Desencriptar la contraseña
         String password = encryptor.decrypt(target.getEncryptedCredential());
 
-        // 2. Armar la cadena de conexión JDBC para Oracle
+        // 2. Armar la URL
         String jdbcUrl = String.format("jdbc:oracle:thin:@//%s:%d/%s",
                 target.getHost(), target.getPort(), target.getServiceName());
 
-        // 3. Conectarse y consultar la vista v$database
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, target.getDbUser(), password);
+        // 3. Propiedades de conexión de Oracle
+        Properties props = new Properties();
+        props.put("user", target.getDbUser());
+        props.put("password", password);
+
+        // ¡LA MAGIA AQUÍ! Si el usuario es 'sys', le decimos a Oracle que entre como SYSDBA
+        if ("sys".equalsIgnoreCase(target.getDbUser())) {
+            props.put("internal_logon", "sysdba");
+        }
+
+        // 4. Conectarse
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
              PreparedStatement stmt = conn.prepareStatement("SELECT log_mode FROM v$database");
              ResultSet rs = stmt.executeQuery()) {
 
@@ -50,10 +61,9 @@ public class ArchiveModeDetectorService {
             }
 
         } catch (Exception e) {
-            // Si falla la conexión o el usuario no tiene permisos sobre v$database
             target.setArchiveMode(DatabaseTarget.ArchiveMode.DESCONOCIDO);
             repository.save(target);
-            throw new BusinessException("No se pudo detectar el modo de archivado. Verifique la conexión y los permisos de sysdba. Error: " + e.getMessage());
+            throw new BusinessException("No se pudo detectar el modo de archivado. Error: " + e.getMessage());
         }
 
         return DatabaseTarget.ArchiveMode.DESCONOCIDO;
