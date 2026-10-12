@@ -1,62 +1,96 @@
 package com.example.automatizacion_gestion_respaldo.controller;
 
-import com.example.automatizacion_gestion_respaldo.domain.Strategy;
-import org.springframework.http.ResponseEntity;
+import com.example.automatizacion_gestion_respaldo.DTO.*;
+import com.example.automatizacion_gestion_respaldo.Service.ExecutionService;
+import com.example.automatizacion_gestion_respaldo.Service.StrategyService;
+import com.example.automatizacion_gestion_respaldo.domain.BackupType;
+import com.example.automatizacion_gestion_respaldo.domain.ExecutionOrigin;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/strategies")
-@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class StrategyController {
 
+    private final StrategyService strategyService;
+    private final ExecutionService executionService;
+
+    // ------------------------------------------------------------ estrategias
+
     @GetMapping
-    public ResponseEntity<List<Strategy>> getAllStrategies() {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.ok(Collections.emptyList());
+    public List<StrategyResponse> list() {
+        return strategyService.list();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Strategy> getStrategyById(@PathVariable Long id) {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.ok(new Strategy());
+    public StrategyResponse get(@PathVariable Long id) {
+        return strategyService.get(id);
     }
 
     @PostMapping
-    public ResponseEntity<Strategy> createStrategy(@RequestBody Strategy strategy) {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.ok(strategy);
+    @ResponseStatus(HttpStatus.CREATED)
+    public StrategyResponse create(@Valid @RequestBody StrategyRequest request) {
+        return strategyService.create(request);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Strategy> updateStrategy(@PathVariable Long id, @RequestBody Strategy strategy) {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.ok(strategy);
+    public StrategyResponse update(@PathVariable Long id, @Valid @RequestBody StrategyRequest request) {
+        return strategyService.update(id, request);
     }
 
-    @PostMapping("/{id}/activate")
-    public ResponseEntity<Void> activateStrategy(@PathVariable Long id) {
-        // TODO: Cambiar el estado 'active' a true
-        return ResponseEntity.ok().build();
+    @PatchMapping("/{id}/active")
+    public StrategyResponse setActive(@PathVariable Long id, @RequestParam boolean active) {
+        return strategyService.setActive(id, active);
     }
 
-    @PostMapping("/{id}/deactivate")
-    public ResponseEntity<Void> deactivateStrategy(@PathVariable Long id) {
-        // TODO: Cambiar el estado 'active' a false
-        return ResponseEntity.ok().build();
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        strategyService.delete(id);
     }
 
-    @PostMapping("/{id}/execute-manual")
-    public ResponseEntity<Void> executeManual(@PathVariable Long id) {
-        // TODO: Orquestar ejecución manual inmediata
-        return ResponseEntity.accepted().build();
+    // ------------------------------------------------------------ script y ejecución manual
+
+    /** Vista previa del script RMAN que generaría la estrategia, sin ejecutarlo. */
+    @GetMapping("/{id}/script")
+    public ScriptPreviewResponse previewScript(@PathVariable Long id, @RequestParam BackupType backupType) {
+        return new ScriptPreviewResponse(id, backupType, strategyService.previewScript(id, backupType));
     }
 
-    @GetMapping("/{id}/preview-script")
-    public ResponseEntity<String> previewScript(@PathVariable Long id) {
-        // TODO: Usar RmanScriptBuilder para generar previsualización
-        return ResponseEntity.ok("BACKUP DATABASE;"); 
+    /** Ejecución manual: la petición responde cuando termina el respaldo, con la evidencia completa. */
+    @PostMapping("/{id}/run")
+    public ExecutionDetailResponse run(@PathVariable Long id, @RequestParam BackupType backupType) {
+        return executionService.run(id, backupType, ExecutionOrigin.MANUAL, null);
+    }
+
+    // ------------------------------------------------------------ programaciones (cuándo)
+
+    @PostMapping("/{id}/schedules")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ScheduleResponse addSchedule(@PathVariable Long id, @Valid @RequestBody ScheduleRequest request) {
+        return strategyService.addSchedule(id, request);
+    }
+
+    @PutMapping("/{id}/schedules/{scheduleId}")
+    public ScheduleResponse updateSchedule(@PathVariable Long id, @PathVariable Long scheduleId,
+                                           @Valid @RequestBody ScheduleRequest request) {
+        return strategyService.updateSchedule(id, scheduleId, request);
+    }
+
+    @PatchMapping("/{id}/schedules/{scheduleId}/active")
+    public ScheduleResponse setScheduleActive(@PathVariable Long id, @PathVariable Long scheduleId,
+                                              @RequestParam boolean active) {
+        return strategyService.setScheduleActive(id, scheduleId, active);
+    }
+
+    @DeleteMapping("/{id}/schedules/{scheduleId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSchedule(@PathVariable Long id, @PathVariable Long scheduleId) {
+        strategyService.deleteSchedule(id, scheduleId);
     }
 }

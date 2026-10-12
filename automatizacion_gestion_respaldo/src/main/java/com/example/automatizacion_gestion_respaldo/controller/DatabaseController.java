@@ -1,45 +1,58 @@
 package com.example.automatizacion_gestion_respaldo.controller;
 
+import com.example.automatizacion_gestion_respaldo.DTO.DatabaseTargetRequest;
+import com.example.automatizacion_gestion_respaldo.DTO.DatabaseTargetResponse;
+import com.example.automatizacion_gestion_respaldo.Service.DatabaseTargetService;
 import com.example.automatizacion_gestion_respaldo.domain.DatabaseTarget;
-import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-//import org.springframework.web.bind.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/databases")
-@CrossOrigin(origins = "*") // Para desarrollo con React
+@RequiredArgsConstructor
 public class DatabaseController {
 
+    private final DatabaseTargetService service;
+
     @GetMapping
-    public ResponseEntity<List<DatabaseTarget>> getAllDatabases() {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.ok(Collections.emptyList());
+    public List<DatabaseTargetResponse> list() {
+        return service.list();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DatabaseTarget> getDatabaseById(@PathVariable Long id) {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.ok(new DatabaseTarget());
+    public DatabaseTargetResponse get(@PathVariable Long id) {
+        return service.get(id);
     }
 
     @PostMapping
-    public ResponseEntity<DatabaseTarget> createDatabase(@RequestBody DatabaseTarget target) {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.ok(target);
+    @ResponseStatus(HttpStatus.CREATED)
+    public DatabaseTargetResponse create(@Valid @RequestBody DatabaseTargetRequest request) {
+        return service.create(request);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DatabaseTarget> updateDatabase(@PathVariable Long id, @RequestBody DatabaseTarget target) {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.ok(target);
+    public DatabaseTargetResponse update(@PathVariable Long id, @Valid @RequestBody DatabaseTargetRequest request) {
+        return service.update(id, request);
+    }
+
+    @PatchMapping("/{id}/active")
+    public DatabaseTargetResponse setActive(@PathVariable Long id, @RequestParam boolean active) {
+        return service.setActive(id, active);
+    }
+
+    @PatchMapping("/{id}/archive-mode")
+    public DatabaseTargetResponse updateArchiveMode(@PathVariable Long id,
+                                                    @RequestParam DatabaseTarget.ArchiveMode mode) {
+        return service.updateArchiveMode(id, mode);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDatabase(@PathVariable Long id) {
-        // TODO: Implementar llamada al servicio
-        return ResponseEntity.noContent().build();
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
     }
 }

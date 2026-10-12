@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * - Base con "ERROR" en el nombre: siempre falla.
  * - Base con "WARN" en el nombre: termina con advertencia.
  * - Resto: falla con probabilidad rman.mock.failure-rate (0 por defecto).
+ * La duración es real: el simulador espera rman.mock.delay-ms para que los tiempos sean coherentes.
  */
 @Slf4j
 @Component
@@ -25,16 +27,20 @@ public class MockRmanExecutor implements RmanExecutor {
     @Value("${rman.mock.failure-rate:0.0}")
     private double failureRate;
 
+    @Value("${rman.mock.delay-ms:0}")
+    private long delayMs;
+
     @Override
     public ExecutionResult execute(DatabaseTarget target, String scriptContent, String destinationPath) {
         log.info("[MOCK RMAN] Objetivo: {} (servicio {})", target.getName(), target.getServiceName());
         log.debug("[MOCK RMAN] Script:\n{}", scriptContent);
 
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        long duration = random.nextLong(10, 131);
+        LocalDateTime start = LocalDateTime.now();
+        pause();
         LocalDateTime end = LocalDateTime.now();
-        LocalDateTime start = end.minusSeconds(duration);
+        long duration = Duration.between(start, end).getSeconds();
 
+        ThreadLocalRandom random = ThreadLocalRandom.current();
         String name = target.getName() == null ? "" : target.getName().toUpperCase();
         boolean warn = name.contains("WARN");
         boolean fail = name.contains("ERROR") || (!warn && random.nextDouble() < failureRate);
@@ -83,5 +89,16 @@ public class MockRmanExecutor implements RmanExecutor {
                 .totalSizeBytes(total)
                 .files(files)
                 .build();
+    }
+
+    private void pause() {
+        if (delayMs <= 0) {
+            return;
+        }
+        try {
+            Thread.sleep(delayMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

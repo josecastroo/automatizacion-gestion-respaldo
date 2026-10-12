@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -36,4 +38,14 @@ public class Schedule {
 
     @Column(nullable = false)
     private Boolean active = true;
+
+    @Column(name = "tracked_since")
+    private LocalDateTime trackedSince;
+
+    @PrePersist
+    void onCreate() {
+        if (trackedSince == null) {
+            trackedSince = LocalDateTime.now();
+        }
+    }
 }

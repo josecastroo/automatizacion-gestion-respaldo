@@ -25,6 +25,8 @@ public interface ExecutionRepository extends Repository<Execution, Long>, JpaSpe
 
     List<Execution> findByStatus(ExecutionStatus status);
 
+    boolean existsByScheduleId(Long scheduleId);
+
     boolean existsByStrategyId(Long strategyId);
 
     boolean existsByStrategyIdAndStatus(Long strategyId, ExecutionStatus status);
@@ -46,4 +48,8 @@ public interface ExecutionRepository extends Repository<Execution, Long>, JpaSpe
             group by e.status
             """)
     List<StatusCount> summaryByStatus(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    // Para el planificador: ¿esta programación ya tiene una ejecución para esa hora de disparo?
+    boolean existsByScheduleIdAndStartTimeGreaterThanEqualAndStartTimeLessThan(
+            Long scheduleId, LocalDateTime from, LocalDateTime to);
 }

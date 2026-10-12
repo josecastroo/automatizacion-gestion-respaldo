@@ -1,0 +1,116 @@
+@dbId = 1
+@strategyId = 1
+@errDbId = 2
+@errStrategyId = 2
+### 1. Registrar una base de datos (modo simulado)
+POST http://localhost:8080/api/databases
+Content-Type: application/json
+
+{
+  "name": "PRODUCCION",
+  "host": "localhost",
+  "port": 1521,
+  "serviceName": "XE",
+  "dbUser": "sys",
+  "password": "clave123",
+  "priority": "ALTA",
+  "active": true
+}
+
+> {% client.global.set("dbId", response.body.id); %}
+
+### 2. Marcarla como ARCHIVELOG
+PATCH http://localhost:8080/api/databases/{{dbId}}/archive-mode?mode=ARCHIVELOG
+
+### 3. Crear una estrategia (qué y cómo)
+POST http://localhost:8080/api/strategies
+Content-Type: application/json
+
+{
+  "name": "Produccion diaria",
+  "databaseTargetId": {{dbId}},
+  "retentionDays": 7,
+  "description": "Nivel 0 semanal, nivel 1 diario y logs",
+  "responsible": "Alejandro",
+  "destinationPath": "C:/backups/produccion",
+  "active": true,
+  "components": [
+    { "componentType": "DB" },
+    { "componentType": "CONTROLFILE" },
+    { "componentType": "SPFILE" }
+  ],
+  "backupTypes": [
+    { "backupType": "INC_0", "compressed": false },
+    { "backupType": "INC_1_DIF", "compressed": false }
+  ]
+}
+
+> {% client.global.set("strategyId", response.body.id); %}
+
+### 4. Ver la estrategia (fijate en "notices": hay una recomendación de ARCHIVELOG y una advertencia por no tener programación)
+GET http://localhost:8080/api/strategies/{{strategyId}}
+
+### 5. Programar (cuándo): nivel 1 diario a las 23:00, ventana 23:00 a 04:00
+POST http://localhost:8080/api/strategies/{{strategyId}}/schedules
+Content-Type: application/json
+
+{
+  "backupType": "INC_1_DIF",
+  "cronExpression": "0 0 23 * * *",
+  "windowStart": "23:00:00",
+  "windowEnd": "04:00:00",
+  "active": true
+}
+
+### 6. Vista previa del script RMAN
+GET http://localhost:8080/api/strategies/{{strategyId}}/script?backupType=INC_1_DIF
+
+### 7. Ejecutar manualmente (exitosa)
+POST http://localhost:8080/api/strategies/{{strategyId}}/run?backupType=INC_0
+
+### 8. Historial
+GET http://localhost:8080/api/executions?size=10
+
+### 9. Resumen de los últimos 30 días
+GET http://localhost:8080/api/executions/summary
+
+### 10. Exportar
+GET http://localhost:8080/api/executions/export/csv
+
+###
+GET http://localhost:8080/api/executions/export/pdf
+
+### 11. Error controlado: una base con "ERROR" en el nombre siempre falla en el ejecutor simulado
+POST http://localhost:8080/api/databases
+Content-Type: application/json
+
+{
+  "name": "PRUEBA_ERROR",
+  "host": "localhost",
+  "port": 1521,
+  "serviceName": "XE",
+  "dbUser": "sys",
+  "password": "clave123",
+  "priority": "BAJA",
+  "active": true
+}
+
+> {% client.global.set("errDbId", response.body.id); %}
+
+### 12. Estrategia sobre esa base
+POST http://localhost:8080/api/strategies
+Content-Type: application/json
+
+{
+  "name": "Prueba con error",
+  "databaseTargetId": {{errDbId}},
+  "retentionDays": 3,
+  "destinationPath": "C:/backups/prueba",
+  "components": [ { "componentType": "DB" } ],
+  "backupTypes": [ { "backupType": "FULL" } ]
+}
+
+> {% client.global.set("errStrategyId", response.body.id); %}
+
+### 13. Ejecutarla: queda registrada como ERROR con RMAN-03002 y ORA-19504
+POST http://localhost:8080/api/strategies/{{errStrategyId}}/run?backupType=FULL
