@@ -2,6 +2,7 @@ package com.example.automatizacion_gestion_respaldo.controller;
 
 import com.example.automatizacion_gestion_respaldo.DTO.DatabaseTargetRequest;
 import com.example.automatizacion_gestion_respaldo.DTO.DatabaseTargetResponse;
+import com.example.automatizacion_gestion_respaldo.Service.ArchiveModeDetectorService;
 import com.example.automatizacion_gestion_respaldo.Service.DatabaseTargetService;
 import com.example.automatizacion_gestion_respaldo.domain.DatabaseTarget;
 import jakarta.validation.Valid;
@@ -17,6 +18,7 @@ import java.util.List;
 public class DatabaseController {
 
     private final DatabaseTargetService service;
+    private final ArchiveModeDetectorService detectorService;
 
     @GetMapping
     public List<DatabaseTargetResponse> list() {
@@ -54,5 +56,13 @@ public class DatabaseController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         service.delete(id);
+    }
+
+    @PostMapping("/{id}/detect-archive-mode")
+    public DatabaseTargetResponse detectArchiveMode(@PathVariable Long id) {
+        // Ejecuta la detección real
+        detectorService.detectAndUpdateMode(id);
+        // Retorna la base de datos actualizada usando la variable correcta: "service"
+        return service.get(id);
     }
 }

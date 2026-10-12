@@ -114,3 +114,6 @@ Content-Type: application/json
 
 ### 13. Ejecutarla: queda registrada como ERROR con RMAN-03002 y ORA-19504
 POST http://localhost:8080/api/strategies/{{errStrategyId}}/run?backupType=FULL
+
+### 14. Ver todas las alertas generales del sistema
+GET http://localhost:8080/api/alerts

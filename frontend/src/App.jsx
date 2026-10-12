@@ -1,122 +1,67 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+// Aquí le ponemos el alias "HistoryIcon" al ícono para evitar el choque
+import { LayoutDashboard, Database, Shield, History as HistoryIcon } from 'lucide-react';
+import Dashboard from './pages/Dashboard';
+import Databases from './pages/Databases';
+import Strategies from './pages/Strategies';
+import History from './pages/History';
 
-function App() {
-  const [count, setCount] = useState(0)
+function Sidebar() {
+    const navItems = [
+        { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/databases', icon: Database, label: 'Bases de Datos' },
+        { to: '/strategies', icon: Shield, label: 'Estrategias' },
+        // Y aquí usamos el HistoryIcon
+        { to: '/history', icon: HistoryIcon, label: 'Historial' },
+    ];
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    return (
+        <div className="w-64 bg-white border-r border-gray-100 h-screen fixed left-0 top-0 flex flex-col">
+            <div className="p-6">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    RMAN Manager
+                </h1>
+            </div>
+            <nav className="flex-1 px-4 space-y-2 mt-4">
+                {navItems.map((item) => (
+                    <NavLink
+                        key={item.to}
+                        to={item.to}
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                                isActive
+                                    ? 'bg-blue-50 text-blue-600 font-medium'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                            }`
+                        }
+                    >
+                        {({ isActive }) => (
+                            <>
+                                <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                                {item.label}
+                            </>
+                        )}
+                    </NavLink>
+                ))}
+            </nav>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    );
 }
 
-export default App
+export default function App() {
+    return (
+        <BrowserRouter>
+            <div className="flex min-h-screen bg-[#fbfbfd]">
+                <Sidebar />
+                <main className="flex-1 ml-64 p-8">
+                    <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/databases" element={<Databases />} />
+                        <Route path="/strategies" element={<Strategies />} />
+                        <Route path="/history" element={<History />} />
+                    </Routes>
+                </main>
+            </div>
+        </BrowserRouter>
+    );
+}
